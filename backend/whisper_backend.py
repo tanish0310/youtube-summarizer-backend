@@ -1,26 +1,30 @@
-import tempfile
-import os
-import whisper  # Make sure you have this installed: pip install -U openai-whisper
+def transcribe_audio(file):
+    import whisper
+    import tempfile
+    import os
 
-# Load the Whisper model once (globally)
-model = whisper.load_model("base")  # Or "small", "medium", "large" as needed
+    model = whisper.load_model("base")
 
-def asr(file_path):
-    return model.transcribe(file_path)
-
-async def transcribe_audio(file):
-    try:
+    if isinstance(file, (str, os.PathLike)):
+        audio_path = file
+        delete_after = False
+    else:
         with tempfile.NamedTemporaryFile(delete=False, suffix=".mp3") as tmp:
-            tmp.write(await file.read())
-            tmp_path = tmp.name
+            contents = file.read()
+            tmp.write(contents)
+            tmp.flush()
+            audio_path = tmp.name
+            delete_after = True
 
-        result = asr(tmp_path)
-        os.remove(tmp_path)
-
+    try:
+        result = model.transcribe(audio_path)
         return result["text"]
-    except Exception as e:
-        print(f"[Transcription Error] {e}")
-        raise
+    finally:
+        if delete_after and os.path.exists(audio_path):
+            os.remove(audio_path)
+
+
+
 
 
 
